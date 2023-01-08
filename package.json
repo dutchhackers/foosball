@@ -12,7 +12,7 @@
   "dependencies": {
     "@firebase/app": "^0.8.3",
     "@firebase/auth": "^0.20.10",
-    "@nestjs/axios": "^0.1.0",
+    "@nestjs/axios": "^1.0.1",
     "@nestjs/common": "9.0.11",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "9.0.11",
