@@ -1,1 +1,9 @@
-<app-nx-welcome></app-nx-welcome> <router-outlet></router-outlet>
+<!-- <app-nx-welcome></app-nx-welcome> -->
+<ul>
+    @for (item of (item$ | async); track item) {
+    <li>
+        {{ item["name"] }}
+    </li>
+    }
+</ul>
+<router-outlet></router-outlet>
