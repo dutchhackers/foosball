@@ -22,7 +22,7 @@
     "@nx/js": "20.0.0",
     "@nx/node": "20.0.0",
     "@nx/workspace": "20.0.0",
-    "@schematics/angular": "18.2.7",
+    "@schematics/angular": "18.2.8",
     "@simondotm/nx-firebase": "^2.3.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.5.7",
