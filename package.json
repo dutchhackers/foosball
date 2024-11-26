@@ -40,7 +40,7 @@
     "@slack/web-api": "^7.4.0",
     "express": "^4.21.0",
     "firebase": "^10.13.2",
-    "firebase-admin": "^12.6.0",
+    "firebase-admin": "^13.0.1",
     "firebase-functions": "^6.0.1",
     "luxon": "^3.5.0",
     "serializr": "^3.0.2",
