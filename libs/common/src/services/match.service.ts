@@ -11,10 +11,11 @@ export { MatchServiceHelper } from './match-service-helper';
 const MATCHES_COLLECTION = Collection.MATCHES;
 const PLAYERS_COLLECTION = Collection.PLAYERS;
 
-interface IMatchFilterOpts {
+export interface IMatchFilterOpts {
   playerId?: string;
   from?: string;
   to?: string;
+  offset?: number;
   limit: number;
   order: 'asc' | 'desc';
 }
@@ -59,6 +60,10 @@ export class MatchService extends CoreService implements IMatchService {
     if (opts.to) {
       console.log('add to ' + opts.to);
       query = query.where('matchDate', '<', opts.to);
+    }
+
+    if (opts.offset) {
+      query = query.offset(opts.offset);
     }
 
     const snapshot = await query

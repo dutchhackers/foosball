@@ -2,21 +2,23 @@ import createError from 'http-errors';
 import express, { Request, Response } from 'express';
 import * as logger from 'firebase-functions/logger';
 
-import { MatchService } from '@foosball/common';
+import { IMatchFilterOpts, MatchService } from '@foosball/common';
 
 const router = express.Router();
 
 router.get('/', async (req: Request, res: Response) => {
   logger.debug('Get Match-Results', req.params);
-
   const matchService = new MatchService();
 
-  const defaultOpts = { limit: 5 };
-  // if (query && query.limit) {
-  //   defaultOpts.limit = parseInt(query.limit);
-  // }
+  const options: Partial<IMatchFilterOpts> = { offset: 0, limit: 5 };
+  if (req.query.offset) {
+    options.offset = parseInt(`${req.query.offset}`);
+  }
+  if (req.query.limit) {
+    options.limit = parseInt(`${req.query.limit}`);
+  }
 
-  const response = await matchService.getMatches(defaultOpts);
+  const response = await matchService.getMatches(options);
   res.json(response);
 });
 
