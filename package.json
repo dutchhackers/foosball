@@ -11,7 +11,7 @@
     "@nx/jest": "20.1.3",
     "@nx/js": "20.1.3",
     "@nx/node": "20.1.3",
-    "@nx/workspace": "20.1.3",
+    "@nx/workspace": "20.2.1",
     "@simondotm/nx-firebase": "^2.3.0",
     "@swc-node/register": "~1.9.1",
     "@swc/core": "~1.9.3",
