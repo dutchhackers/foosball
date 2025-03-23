@@ -8,7 +8,7 @@
     "@nx/esbuild": "20.4.0",
     "@nx/eslint": "20.4.0",
     "@nx/eslint-plugin": "20.4.0",
-    "@nx/jest": "20.4.0",
+    "@nx/jest": "20.6.2",
     "@nx/js": "20.4.0",
     "@nx/node": "20.4.0",
     "@nx/workspace": "20.4.0",
