@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@google-cloud/pubsub": "^4.11.0",
-    "@google/generative-ai": "^0.21.0",
+    "@google/generative-ai": "^0.24.0",
     "@slack/web-api": "^7.9.1",
     "express": "4.21.2",
     "firebase": "^11.5.0",
