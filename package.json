@@ -7,7 +7,7 @@
   "devDependencies": {
     "@nx/esbuild": "20.6.4",
     "@nx/eslint": "20.6.4",
-    "@nx/eslint-plugin": "20.6.4",
+    "@nx/eslint-plugin": "20.7.1",
     "@nx/jest": "20.6.4",
     "@nx/js": "20.6.4",
     "@nx/node": "20.6.4",
