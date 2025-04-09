@@ -2,7 +2,6 @@ import { QueryDocumentSnapshot, WriteBatch, getFirestore } from 'firebase-admin/
 import * as logger from 'firebase-functions/logger';
 import { HttpsOptions, onRequest } from 'firebase-functions/v2/https';
 
-// Adjust the import path based on your project structure/tsconfig
 import {
   EntityType,
   IEntityMatchResult,
@@ -13,10 +12,10 @@ import {
   checkFlawlessVictory,
   checkSuckerPunch,
   getTimePeriodIds,
-} from '@foosball/common'; // Or '@foosball/common/src' etc.
+} from '@foosball/common';
 
 // --- Configuration ---
-const DEFAULT_REGION = 'europe-west1'; // Or your preferred region
+const DEFAULT_REGION = 'europe-west1';
 const MATCH_FETCH_LIMIT = 500;
 const WRITE_BATCH_LIMIT = 450;
 const PLAYERS_COLLECTION = 'players';
