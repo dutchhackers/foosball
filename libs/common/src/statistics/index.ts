@@ -5,4 +5,5 @@ export * from './statistics.enum';
 export * from './statistics.interface';
 export * from './stats.service';
 export * from './stats.util';
+export * from './time-based-stats.interface';
 export * from './time-dimension';
