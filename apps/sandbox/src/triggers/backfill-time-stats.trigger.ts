@@ -1,19 +1,18 @@
-import * as functions from 'firebase-functions/v2';
+import { QueryDocumentSnapshot, WriteBatch, getFirestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
-import { getFirestore, FieldValue, Timestamp, CollectionReference, WriteBatch, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { HttpsOptions, onRequest } from 'firebase-functions/v2/https';
 
 // Adjust the import path based on your project structure/tsconfig
 import {
+  EntityType,
+  IEntityMatchResult,
   IMatchResult,
   ITimeBasedPlayerStats,
   ITimeBasedPlayerStatsIncrements,
   PeriodType,
-  EntityType,
-  IEntityMatchResult,
-  getTimePeriodIds,
   checkFlawlessVictory,
   checkSuckerPunch,
+  getTimePeriodIds,
 } from '@foosball/common'; // Or '@foosball/common/src' etc.
 
 // --- Configuration ---
