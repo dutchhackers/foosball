@@ -1,17 +1,19 @@
-import { FieldValue } from 'firebase-admin/firestore';
-
+import { FieldValue, Transaction, FieldPath, DocumentSnapshot, DocumentReference } from 'firebase-admin/firestore'; // Import DocumentReference
 import { CoreService } from '../core/abstract-service';
 import { IMatchResult } from '../match/match-result.model';
-import { checkFlawlessVictory, checkSuckerPunch } from '../core/utils';
+import { checkFlawlessVictory, checkSuckerPunch, getTimePeriodIds } from '../core/utils';
 import { Collection } from '../core/utils/firestore-db';
 import { IMetrics } from './metrics.interface';
 import { IEntityMatchResult } from './statistics.interface';
 import { EntityType } from './statistics.enum';
+import { ITimeBasedPlayerStats, ITimeBasedPlayerStatsIncrements, PeriodType } from './time-based-stats.interface';
+import { IPlayerStats } from '../player/player.interface';
 
 const PLAYERS_COLLECTION = Collection.PLAYERS;
 
 export interface IStatsService {
-  generateStats(matchResult: any): Promise<any>;
+  generateStats(transaction: Transaction, matchResult: IMatchResult, opts?: { multiplier?: number }): Promise<void>;
+  batchUpdateStreaks(playerIds: string[]): Promise<void>;
 }
 
 export class StatsService extends CoreService implements IStatsService {
@@ -19,10 +21,10 @@ export class StatsService extends CoreService implements IStatsService {
     super();
   }
 
-  async generateStats(matchResult: IMatchResult, opts: any = {}): Promise<any> {
-    const players = [];
-    const winners = [];
-    const losers = [];
+  async generateStats(transaction: Transaction, matchResult: IMatchResult, opts: { multiplier?: number } = {}): Promise<void> {
+    const allPlayerIds: string[] = [...matchResult.homeTeamIds, ...matchResult.awayTeamIds];
+    const winners: string[] = [];
+    const losers: string[] = [];
     const multiplier = opts.multiplier || 1;
 
     if (matchResult.toto === 1) {
@@ -33,150 +35,285 @@ export class StatsService extends CoreService implements IStatsService {
       losers.push(...matchResult.homeTeamIds);
     }
 
-    players.push(...matchResult.homeTeamIds, ...matchResult.awayTeamIds);
+    const flags = {
+      hasHumiliation: checkFlawlessVictory(matchResult.finalScore),
+      hasSuckerPunch: checkSuckerPunch(matchResult.finalScore),
+    };
 
-    const flags: any = {};
-    flags.hasHumiliation = checkFlawlessVictory(matchResult.finalScore);
-    flags.hasSuckerPunch = checkSuckerPunch(matchResult.finalScore);
+    const nowISO = new Date().toISOString();
+    const timePeriodIds = getTimePeriodIds(matchResult.matchDate || nowISO);
 
-    const entities: IEntityMatchResult[] = [];
-    const docRefs: FirebaseFirestore.DocumentReference[] = [];
+    // --- Read Phase: Gather all references and read them ---
+    const refsToRead: DocumentReference[] = [];
+    const refMap = new Map<string, { playerRef: DocumentReference; dailyRef: DocumentReference; weeklyRef: DocumentReference }>();
 
-    for (const player of players) {
-      const item: IEntityMatchResult = {
-        matchDate: matchResult.matchDate || new Date().toISOString(),
+    for (const playerId of allPlayerIds) {
+      const playerRef = this.db.collection(PLAYERS_COLLECTION).doc(playerId);
+      const dailyStatsRef = this.db
+        .collection(PLAYERS_COLLECTION)
+        .doc(playerId)
+        .collection('stats')
+        .doc('daily')
+        .collection('records')
+        .doc(timePeriodIds.daily);
+      const weeklyStatsRef = this.db
+        .collection(PLAYERS_COLLECTION)
+        .doc(playerId)
+        .collection('stats')
+        .doc('weekly')
+        .collection('records')
+        .doc(timePeriodIds.weekly);
+
+      refsToRead.push(dailyStatsRef, weeklyStatsRef); // Add refs for time-based docs
+      // Optionally add playerRef if needed for reads: refsToRead.push(playerRef);
+      refMap.set(playerId, { playerRef, dailyRef: dailyStatsRef, weeklyRef: weeklyStatsRef });
+    }
+
+    // Execute all reads upfront
+    const allSnapshots = await transaction.getAll(...refsToRead);
+
+    // Create maps for easy lookup of snapshots by their original reference path
+    const snapshotMap = new Map<string, DocumentSnapshot>();
+    allSnapshots.forEach(snap => snapshotMap.set(snap.ref.path, snap));
+    // --- End Read Phase ---
+
+    // --- Write Phase: Process each player using the read data ---
+    for (const playerId of allPlayerIds) {
+      const refs = refMap.get(playerId);
+      if (!refs) continue; // Should not happen
+
+      // Retrieve the snapshots for this player from the map
+      const dailySnapshot = snapshotMap.get(refs.dailyRef.path);
+      const weeklySnapshot = snapshotMap.get(refs.weeklyRef.path);
+      // const playerSnapshot = snapshotMap.get(refs.playerRef.path); // Retrieve if playerRef was read
+
+      if (!dailySnapshot || !weeklySnapshot) {
+        console.error(
+          `Snapshot missing for player ${playerId} refs. Path daily: ${refs.dailyRef.path}, Path weekly: ${refs.weeklyRef.path}. This indicates an issue with getAll or map lookup.`
+        );
+        // Decide how to handle: skip player? throw error?
+        continue; // Skip this player if snapshots are missing
+      }
+
+      const entityMatchResult: IEntityMatchResult = {
+        matchDate: matchResult.matchDate || nowISO,
         entityType: EntityType.PLAYER,
-        entityKey: player,
-        didWin: winners.indexOf(player) >= 0,
-        didLose: losers.indexOf(player) >= 0,
+        entityKey: playerId,
+        didWin: winners.includes(playerId),
+        didLose: losers.includes(playerId),
         hasHumiliation: flags.hasHumiliation,
         hasSuckerPunch: flags.hasSuckerPunch,
       };
 
-      entities.push(item);
-    }
+      // Calculate increments
+      const playerStatsIncrements = this.calculateMetrics(entityMatchResult, multiplier);
+      const timeBasedIncrements = this.calculateTimeBasedIncrements(entityMatchResult, matchResult, multiplier);
 
-    const batch = this.db.batch();
+      // Perform writes using the transaction
 
-    for (const entity of entities) {
-      let docRef: FirebaseFirestore.DocumentReference;
+      // 1. Write Main Player Stats
+      const updateData = { ...playerStatsIncrements, modificationDate: nowISO };
+      transaction.set(refs.playerRef, updateData, { merge: true });
 
-      switch (entity.entityType) {
-        case EntityType.PLAYER:
-          docRef = this.db.collection(PLAYERS_COLLECTION).doc(entity.entityKey);
-          break;
-        default:
-          throw new Error('Not Implemented');
-      }
-      docRefs.push(docRef);
-
-      const metrics = this.calculateMetrics(
-        {
-          didWin: entity.didWin,
-          didLose: entity.didLose,
-          hasHumiliation: entity.hasHumiliation,
-          hasSuckerPunch: entity.hasSuckerPunch,
-        },
-        multiplier
+      // 2. Write Daily Stats (pass ref and the snapshot read earlier)
+      this.updateTimeBasedStatsDoc(
+        transaction,
+        refs.dailyRef, // Pass ref for writing
+        dailySnapshot, // Pass the read snapshot
+        playerId,
+        timePeriodIds.daily,
+        'daily',
+        timeBasedIncrements,
+        nowISO
       );
 
-      const docData = Object.assign({}, metrics, {
-        modificationDate: new Date().toISOString(),
-      });
-      batch.set(docRef, docData, { merge: true });
+      // 3. Write Weekly Stats (pass ref and the snapshot read earlier)
+      this.updateTimeBasedStatsDoc(
+        transaction,
+        refs.weeklyRef, // Pass ref for writing
+        weeklySnapshot, // Pass the read snapshot
+        playerId,
+        timePeriodIds.weekly,
+        'weekly',
+        timeBasedIncrements,
+        nowISO
+      );
     }
-
-    await batch.commit();
-
-    // Update Streak stats
-    await this.batchUpdateStreaks(docRefs);
+    // --- End Write Phase ---
   }
 
-  public async batchUpdateStreaks(docReferences: FirebaseFirestore.DocumentReference[]): Promise<void> {
-    if (!docReferences) {
+  // batchUpdateStreaks remains the same as the previous version
+  public async batchUpdateStreaks(playerIds: string[]): Promise<void> {
+    if (!playerIds || playerIds.length === 0) {
       return;
     }
 
     const batch = this.db.batch();
     let maxStreakChanged = false;
 
-    for (const docRef of docReferences) {
-      const snapshot: any = await docRef.get();
-      const data = snapshot.data();
+    const playerRefs = playerIds.map(id => this.db.collection(PLAYERS_COLLECTION).doc(id));
+    const playerSnapshots = await this.db.getAll(...playerRefs);
 
-      // Win streak
+    for (const snapshot of playerSnapshots) {
+      if (!snapshot.exists) continue;
+
+      const data = snapshot.data()!;
+      const docRef = snapshot.ref;
+
       const currentWinStreak = data.winStreak || 0;
       const highestWinStreak = data.highestWinStreak || 0;
-
-      // Lose streak
       const currentLoseStreak = data.loseStreak || 0;
       const highestLoseStreak = data.highestLoseStreak || 0;
 
-      const isoTimestamp = new Date().toISOString();
+      let needsUpdate = false;
+      const updatePayload: Partial<IPlayerStats> = {};
 
       if (currentWinStreak > highestWinStreak) {
         maxStreakChanged = true;
-        batch.set(docRef, { highestWinStreak: currentWinStreak }, { merge: true });
+        needsUpdate = true;
+        updatePayload.highestWinStreak = currentWinStreak;
       }
 
       if (currentLoseStreak > highestLoseStreak) {
         maxStreakChanged = true;
-        batch.set(docRef, { highestLoseStreak: currentLoseStreak }, { merge: true });
+        needsUpdate = true;
+        updatePayload.highestLoseStreak = currentLoseStreak;
+      }
+
+      if (needsUpdate) {
+        batch.set(docRef, updatePayload, { merge: true });
       }
     }
 
     if (maxStreakChanged) {
-      await batch.commit();
+      try {
+        await batch.commit();
+        console.log(`Streaks updated for relevant players among: ${playerIds.join(', ')}.`);
+      } catch (error) {
+        console.error('Failed to commit streak updates batch:', error);
+      }
     }
   }
 
-  private calculateMetrics(flags: any = {}, multiplier = 1): IMetrics {
+  // calculateMetrics remains the same as the previous version
+  private calculateMetrics(entityResult: IEntityMatchResult, multiplier: number): IMetrics {
     const metrics: IMetrics = {};
     const now = new Date().toISOString();
 
-    // Increase number of played matches
     metrics.totalMatches = FieldValue.increment(multiplier * 1);
     metrics.dateLastMatch = now;
 
-    if (flags.didWin === true) {
+    if (entityResult.didWin) {
       metrics.totalWins = FieldValue.increment(multiplier * 1);
       metrics.dateLastWin = now;
+      metrics.winStreak = FieldValue.increment(multiplier * 1);
+      metrics.loseStreak = 0;
 
-      if (flags.hasHumiliation) {
-        // i.e. made someone 'Kroepn'
+      if (entityResult.hasHumiliation) {
         metrics.totalFlawlessVictories = FieldValue.increment(multiplier * 1);
         metrics.dateLastFlawlessVictory = now;
       }
-
-      if (flags.hasSuckerPunch) {
+      if (entityResult.hasSuckerPunch) {
         metrics.totalSuckerpunches = FieldValue.increment(multiplier * 1);
       }
-    }
-
-    if (flags.didLose === true) {
+    } else if (entityResult.didLose) {
       metrics.totalLosses = FieldValue.increment(multiplier * 1);
       metrics.dateLastLose = now;
+      metrics.loseStreak = FieldValue.increment(multiplier * 1);
+      metrics.winStreak = 0;
 
-      if (flags.hasHumiliation) {
-        // i.e. made someone 'Kroepn'
+      if (entityResult.hasHumiliation) {
         metrics.totalHumiliations = FieldValue.increment(multiplier * 1);
         metrics.dateLastHumiliation = now;
       }
-
-      if (flags.hasSuckerPunch) {
+      if (entityResult.hasSuckerPunch) {
         metrics.totalKnockouts = FieldValue.increment(multiplier * 1);
       }
-    }
-
-    /** Streaks */
-    if (flags.didWin === true) {
-      metrics.winStreak = FieldValue.increment(multiplier * 1);
-      metrics.loseStreak = 0;
-    } else if (flags.didLose === true) {
+    } else {
       metrics.winStreak = 0;
-      metrics.loseStreak = FieldValue.increment(multiplier * 1);
+      metrics.loseStreak = 0;
     }
 
     return metrics;
+  }
+
+  // calculateTimeBasedIncrements remains the same as the previous version
+  private calculateTimeBasedIncrements(
+    entityResult: IEntityMatchResult,
+    matchResult: IMatchResult,
+    multiplier: number
+  ): ITimeBasedPlayerStatsIncrements {
+    const increments: ITimeBasedPlayerStatsIncrements = {
+      matchesPlayed: 1 * multiplier,
+      wins: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      humiliationsInflicted: 0,
+      humiliationsSuffered: 0,
+      suckerPunchesDealt: 0,
+      suckerPunchesReceived: 0,
+    };
+
+    const playerTeamIndex = matchResult.homeTeamIds.includes(entityResult.entityKey) ? 0 : 1;
+    const scoreFor = typeof matchResult.finalScore[playerTeamIndex] === 'number' ? matchResult.finalScore[playerTeamIndex] : 0;
+    const scoreAgainst =
+      typeof matchResult.finalScore[playerTeamIndex === 0 ? 1 : 0] === 'number' ? matchResult.finalScore[playerTeamIndex === 0 ? 1 : 0] : 0;
+
+    increments.goalsFor = scoreFor * multiplier;
+    increments.goalsAgainst = scoreAgainst * multiplier;
+
+    if (entityResult.didWin) {
+      increments.wins = 1 * multiplier;
+      if (entityResult.hasHumiliation) increments.humiliationsInflicted = 1 * multiplier;
+      if (entityResult.hasSuckerPunch) increments.suckerPunchesDealt = 1 * multiplier;
+    } else if (entityResult.didLose) {
+      increments.losses = 1 * multiplier;
+      if (entityResult.hasHumiliation) increments.humiliationsSuffered = 1 * multiplier;
+      if (entityResult.hasSuckerPunch) increments.suckerPunchesReceived = 1 * multiplier;
+    }
+
+    return increments;
+  }
+
+  // updateTimeBasedStatsDoc remains the same as the previous version (accepts snapshot)
+  private updateTimeBasedStatsDoc(
+    transaction: Transaction,
+    statsDocRef: FirebaseFirestore.DocumentReference,
+    statsDocSnapshot: DocumentSnapshot,
+    playerId: string,
+    timeframeId: string,
+    periodType: PeriodType,
+    increments: ITimeBasedPlayerStatsIncrements,
+    timestamp: string
+  ): void {
+    if (statsDocSnapshot.exists) {
+      const updatePayload: { [key: string]: any } = { lastUpdatedAt: timestamp };
+      for (const key in increments) {
+        const incrementValue = increments[key as keyof ITimeBasedPlayerStatsIncrements];
+        if (incrementValue !== 0) {
+          updatePayload[key] = FieldValue.increment(incrementValue);
+        }
+      }
+      transaction.update(statsDocRef, updatePayload);
+    } else {
+      const newStatsDoc: ITimeBasedPlayerStats = {
+        playerId: playerId,
+        timeframeId: timeframeId,
+        periodType: periodType,
+        matchesPlayed: increments.matchesPlayed,
+        wins: increments.wins,
+        losses: increments.losses,
+        goalsFor: increments.goalsFor,
+        goalsAgainst: increments.goalsAgainst,
+        humiliationsInflicted: increments.humiliationsInflicted,
+        humiliationsSuffered: increments.humiliationsSuffered,
+        suckerPunchesDealt: increments.suckerPunchesDealt,
+        suckerPunchesReceived: increments.suckerPunchesReceived,
+        firstActivityAt: timestamp,
+        lastUpdatedAt: timestamp,
+      };
+      transaction.set(statsDocRef, newStatsDoc);
+    }
   }
 }
