@@ -52,6 +52,12 @@ export class Player extends FirestoreDocument implements IPlayer {
   @serializable(numberMetric())
   totalKnockouts = 0;
 
+  @serializable(numberMetric())
+  totalGoalsFor = 0;
+
+  @serializable(numberMetric())
+  totalGoalsAgainst = 0;
+
   @serializable
   dateLastMatch?: string;
 

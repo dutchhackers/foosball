@@ -8,6 +8,8 @@ export interface IMetrics {
   totalHumiliations?: number | admin.firestore.FieldValue;
   totalSuckerpunches?: number | admin.firestore.FieldValue;
   totalKnockouts?: number | admin.firestore.FieldValue;
+  totalGoalsFor?: number | admin.firestore.FieldValue;
+  totalGoalsAgainst?: number | admin.firestore.FieldValue;
   dateLastMatch?: string;
   dateLastWin?: string;
   dateLastFlawlessVictory?: string;

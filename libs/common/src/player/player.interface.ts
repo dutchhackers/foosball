@@ -7,6 +7,8 @@ export interface IPlayerStats {
   totalHumiliations?: number;
   totalSuckerpunches?: number;
   totalKnockouts?: number;
+  totalGoalsFor?: number;
+  totalGoalsAgainst?: number;
   dateLastMatch?: string;
   dateLastWin?: string;
   dateLastFlawlessVictory?: string;

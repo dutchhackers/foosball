@@ -106,7 +106,7 @@ export class StatsService extends CoreService implements IStatsService {
       };
 
       // Calculate increments
-      const playerStatsIncrements = this.calculateMetrics(entityMatchResult, multiplier);
+      const playerStatsIncrements = this.calculateMetrics(entityMatchResult, matchResult, multiplier); // Pass matchResult
       const timeBasedIncrements = this.calculateTimeBasedIncrements(entityMatchResult, matchResult, multiplier);
 
       // Perform writes using the transaction
@@ -195,12 +195,20 @@ export class StatsService extends CoreService implements IStatsService {
     }
   }
 
-  // calculateMetrics remains the same as the previous version
-  private calculateMetrics(entityResult: IEntityMatchResult, multiplier: number): IMetrics {
+  // calculateMetrics updated to include goals
+  private calculateMetrics(entityResult: IEntityMatchResult, matchResult: IMatchResult, multiplier: number): IMetrics {
     const metrics: IMetrics = {};
     const now = new Date().toISOString();
 
+    // Determine goals for and against for this player
+    const playerTeamIndex = matchResult.homeTeamIds.includes(entityResult.entityKey) ? 0 : 1;
+    const goalsFor = typeof matchResult.finalScore[playerTeamIndex] === 'number' ? matchResult.finalScore[playerTeamIndex] : 0;
+    const goalsAgainst =
+      typeof matchResult.finalScore[playerTeamIndex === 0 ? 1 : 0] === 'number' ? matchResult.finalScore[playerTeamIndex === 0 ? 1 : 0] : 0;
+
     metrics.totalMatches = FieldValue.increment(multiplier * 1);
+    metrics.totalGoalsFor = FieldValue.increment(goalsFor * multiplier);
+    metrics.totalGoalsAgainst = FieldValue.increment(goalsAgainst * multiplier);
     metrics.dateLastMatch = now;
 
     if (entityResult.didWin) {
