@@ -122,6 +122,7 @@ export const backfillGoalsStats = onRequest(functionOptions, async (req, res): P
 
   try {
     // Fetch matches in batches
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       let query = db
         .collection(MATCHES_COLLECTION)
