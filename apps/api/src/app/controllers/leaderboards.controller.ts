@@ -41,6 +41,87 @@ interface FoosballLeaderboardEntry {
 // --- Core Leaderboard Logic ---
 
 /**
+ * Fetches and ranks players based on their all-time statistics
+ * @returns A promise resolving to an array of sorted FoosballLeaderboardEntry objects with all-time stats
+ */
+async function getAllTimeLeaderboard(): Promise<FoosballLeaderboardEntry[]> {
+  const playerService = new PlayerService();
+  logger.info('Generating all-time leaderboard');
+
+  try {
+    // 1. Get all players
+    const allPlayers = await playerService.getPlayers();
+    if (!allPlayers || allPlayers.length === 0) {
+      logger.warn('No players found.');
+      return [];
+    }
+
+    // 2. Map players to leaderboard entries using their overall stats
+    const leaderboardEntries = allPlayers.map(player => {
+      // Get stats directly from player document
+      const matchesPlayed = player.totalMatches || 0;
+      const wins = player.totalWins || 0;
+      const losses = player.totalLosses || 0;
+      const goalsFor = player.totalGoalsFor || 0;
+      const goalsAgainst = player.totalGoalsAgainst || 0;
+      const goalDifference = goalsFor - goalsAgainst;
+      // Calculate win percentage carefully to avoid division by zero
+      const winPercentage = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+
+      return {
+        playerId: player.id,
+        displayName: player.getDisplayName(),
+        avatarUrl: player.avatar || null,
+        periodId: 'all-time', // Special marker for all-time stats
+        periodType: 'all-time' as PeriodType, // Cast to PeriodType for compatibility
+        matchesPlayed: matchesPlayed,
+        wins: wins,
+        losses: losses,
+        goalsFor: goalsFor,
+        goalsAgainst: goalsAgainst,
+        goalDifference: goalDifference,
+        winPercentage: winPercentage,
+        humiliationsInflicted: player.totalFlawlessVictories || 0,
+        humiliationsSuffered: player.totalHumiliations || 0,
+        suckerPunchesDealt: player.totalSuckerpunches || 0,
+        suckerPunchesReceived: player.totalKnockouts || 0,
+      };
+    });
+
+    // 3. Filter out players with no matches
+    const activeLeaderboardEntries = leaderboardEntries.filter(entry => entry.matchesPlayed > 0);
+
+    // 4. Sort the leaderboard using the same logic as time-based leaderboards
+    activeLeaderboardEntries.sort((a, b) => {
+      // Primary sort: Wins (descending)
+      if (b.wins !== a.wins) {
+        return b.wins - a.wins;
+      }
+      // Secondary sort: Win Percentage (descending)
+      if (b.winPercentage !== a.winPercentage) {
+        return b.winPercentage - a.winPercentage;
+      }
+      // Tertiary sort: Goal Difference (descending)
+      if (b.goalDifference !== a.goalDifference) {
+        return b.goalDifference - a.goalDifference;
+      }
+      // Quaternary sort: Matches Played (descending - more activity is better in a tie)
+      if (b.matchesPlayed !== a.matchesPlayed) {
+        return b.matchesPlayed - a.matchesPlayed;
+      }
+      // Final sort: Alphabetical by display name (ascending)
+      return a.displayName.localeCompare(b.displayName);
+    });
+
+    logger.info(`All-time leaderboard generated with ${activeLeaderboardEntries.length} active entries.`);
+    return activeLeaderboardEntries;
+  } catch (error) {
+    logger.error('Error generating all-time leaderboard:', error);
+    throw error; // Re-throw to be caught by the route handler
+  }
+}
+
+/**
  * Fetches and ranks players based on their stats for a specific time period.
  * @param periodType 'daily' or 'weekly'.
  * @param periodId Optional specific period ID (e.g., "2023-10-27" or "2023-W43"). Defaults to current period.
@@ -176,6 +257,19 @@ router.get('/week/:weekId?', async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Failed to retrieve weekly leaderboard:', error);
     res.status(500).json({ error: 'Failed to retrieve weekly leaderboard' });
+  }
+});
+
+// All-time leaderboard endpoint: /leaderboards/all-time
+router.get('/all-time', async (req: Request, res: Response) => {
+  logger.debug('GET /leaderboards/all-time');
+
+  try {
+    const leaderboard = await getAllTimeLeaderboard();
+    res.json(leaderboard);
+  } catch (error) {
+    logger.error('Failed to retrieve all-time leaderboard:', error);
+    res.status(500).json({ error: 'Failed to retrieve all-time leaderboard' });
   }
 });
 
