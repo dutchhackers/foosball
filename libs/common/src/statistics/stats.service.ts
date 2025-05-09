@@ -296,15 +296,25 @@ export class StatsService extends CoreService implements IStatsService {
     timestamp: string
   ): void {
     if (statsDocSnapshot.exists) {
-      const updatePayload: { [key: string]: any } = { lastUpdatedAt: timestamp };
-      for (const key in increments) {
-        const incrementValue = increments[key as keyof ITimeBasedPlayerStatsIncrements];
-        if (incrementValue !== 0) {
-          updatePayload[key] = FieldValue.increment(incrementValue);
-        }
-      }
-      transaction.update(statsDocRef, updatePayload);
+      // Read existing data, add increments, and set the document
+      const existingStats = statsDocSnapshot.data() as ITimeBasedPlayerStats;
+      const updatedStats: ITimeBasedPlayerStats = {
+        ...existingStats,
+        matchesPlayed: (existingStats.matchesPlayed || 0) + increments.matchesPlayed,
+        wins: (existingStats.wins || 0) + increments.wins,
+        losses: (existingStats.losses || 0) + increments.losses,
+        goalsFor: (existingStats.goalsFor || 0) + increments.goalsFor,
+        goalsAgainst: (existingStats.goalsAgainst || 0) + increments.goalsAgainst,
+        humiliationsInflicted: (existingStats.humiliationsInflicted || 0) + increments.humiliationsInflicted,
+        humiliationsSuffered: (existingStats.humiliationsSuffered || 0) + increments.humiliationsSuffered,
+        suckerPunchesDealt: (existingStats.suckerPunchesDealt || 0) + increments.suckerPunchesDealt,
+        suckerPunchesReceived: (existingStats.suckerPunchesReceived || 0) + increments.suckerPunchesReceived,
+        lastUpdatedAt: timestamp, // Always update lastUpdatedAt
+        // firstActivityAt should only be set on initial creation, so we don't update it here
+      };
+      transaction.set(statsDocRef, updatedStats); // Use set instead of update with increment
     } else {
+      // Document doesn't exist, create it with the increments
       const newStatsDoc: ITimeBasedPlayerStats = {
         playerId: playerId,
         timeframeId: timeframeId,
