@@ -6,7 +6,7 @@
   "private": true,
   "devDependencies": {
     "@nx/esbuild": "20.8.1",
-    "@nx/eslint": "21.0.3",
+    "@nx/eslint": "21.3.7",
     "@nx/eslint-plugin": "20.8.1",
     "@nx/jest": "20.8.1",
     "@nx/js": "20.8.1",
