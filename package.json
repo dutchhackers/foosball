@@ -10,7 +10,7 @@
     "@nx/eslint-plugin": "20.8.1",
     "@nx/jest": "20.8.1",
     "@nx/js": "20.8.1",
-    "@nx/node": "20.8.1",
+    "@nx/node": "22.5.3",
     "@nx/workspace": "21.0.3",
     "@simondotm/nx-firebase": "^2.3.0",
     "@swc-node/register": "~1.11.1",
