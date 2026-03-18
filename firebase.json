@@ -23,19 +23,19 @@
     {
       "codebase": "api",
       "source": "dist/apps/api",
-      "runtime": "nodejs20",
+      "runtime": "nodejs24",
       "ignore": ["*.local"]
     },
     {
       "codebase": "sandbox",
       "source": "dist/apps/sandbox",
-      "runtime": "nodejs20",
+      "runtime": "nodejs24",
       "ignore": ["*.local"]
     },
     {
       "codebase": "slack-webhook",
       "source": "dist/apps/slack-webhook",
-      "runtime": "nodejs20",
+      "runtime": "nodejs24",
       "ignore": ["*.local"]
     }
   ],
