@@ -56,3 +56,6 @@ pubsub-debug.log
 ui-debug.log
 firebase-export*
 .secret.local
+
+.claude/worktrees
+.claude/settings.local.json
