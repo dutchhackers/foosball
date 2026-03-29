@@ -34,7 +34,7 @@
     "prettier": "^3.5.3",
     "ts-jest": "29.4.6",
     "ts-node": "10.9.1",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "dependencies": {
     "@google-cloud/pubsub": "^5.3.0",
