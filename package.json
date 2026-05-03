@@ -30,7 +30,7 @@
     "jest-environment-node": "^30.3.0",
     "jest-util": "^30.3.0",
     "kill-port": "^2.0.1",
-    "nx": "22.7.0",
+    "nx": "22.7.1",
     "prettier": "^3.5.3",
     "ts-jest": "29.4.9",
     "ts-node": "10.9.1",
