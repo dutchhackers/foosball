@@ -27,7 +27,7 @@
     "firebase-functions-test": "^3.5.0",
     "firebase-tools": "^15.16.0",
     "jest": "^30.3.0",
-    "jest-environment-node": "^30.3.0",
+    "jest-environment-node": "^30.4.1",
     "jest-util": "^30.3.0",
     "kill-port": "^2.0.1",
     "nx": "22.7.1",
