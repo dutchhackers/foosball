@@ -6,7 +6,7 @@ export function initializeClient(apiKey: string): GeminiClient {
 }
 
 export class GeminiClient {
-  #genAI: GoogleGenerativeAI = null;
+  #genAI: GoogleGenerativeAI | null = null;
 
   constructor(apiKey: string) {
     console.log('initialize GeminiClient', apiKey);
