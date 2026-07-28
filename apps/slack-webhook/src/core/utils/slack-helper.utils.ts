@@ -1,3 +1,4 @@
+import type { Firestore } from 'firebase-admin/firestore';
 import { IOption, MatchService, Player, PlayerService } from '@foosball/common';
 import { IFinalScore, IPlayer } from '@foosball/common';
 import { Response } from 'express';
@@ -59,7 +60,7 @@ export class SlackHelper {
     return `Successfully updated your profile ${player.getDisplayName()}!`;
   }
 
-  static async getDefaultLeaderboard(db: FirebaseFirestore.Firestore, options: IDefaultLeaderboardOpts = {}): Promise<any> {
+  static async getDefaultLeaderboard(db: Firestore, options: IDefaultLeaderboardOpts = {}): Promise<any> {
     const query = db.collection('players').where('totalHumiliations', '>=', 0);
     const snapshot = await query.orderBy('totalHumiliations', 'desc').get();
     const snapshotData = snapshot.docs.map(p => deserialize<Player>(Player, p.data()));

@@ -1,4 +1,4 @@
-import { QueryDocumentSnapshot, WriteBatch, getFirestore } from 'firebase-admin/firestore';
+import { QueryDocumentSnapshot, WriteBatch, getFirestore, type Firestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { HttpsOptions, onRequest } from 'firebase-functions/v2/https';
 
@@ -86,7 +86,7 @@ function aggregateIncrements(
 }
 
 async function writeAggregatesToFirestore(
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   aggregates: { [timeframeId: string]: { [playerId: string]: Partial<ITimeBasedPlayerStats> } },
   periodType: PeriodType,
   nowISOforFallback: string

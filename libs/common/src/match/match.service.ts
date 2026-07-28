@@ -1,4 +1,4 @@
-import { FieldValue, FieldPath, Transaction } from 'firebase-admin/firestore'; // Added Transaction
+import { FieldValue, FieldPath, Transaction, type Query } from 'firebase-admin/firestore'; // Added Transaction
 import { CoreService } from '../core/abstract-service';
 import { checkIfDuplicateExists, totoResult } from '../core/utils';
 import { Collection } from '../core/utils/firestore-db';
@@ -46,7 +46,7 @@ export class MatchService extends CoreService implements IMatchService {
 
   async getMatches(opts: Partial<IMatchFilterOpts> = {}): Promise<MatchResult[]> {
     const options: IMatchFilterOpts = Object.assign({ limit: 20, order: 'desc' }, opts);
-    let query: FirebaseFirestore.Query = this.db.collection(MATCHES_COLLECTION);
+    let query: Query = this.db.collection(MATCHES_COLLECTION);
 
     if (opts.playerId) {
       query = query.where('_members', 'array-contains', opts.playerId);

@@ -1,3 +1,4 @@
+import type { DocumentData } from 'firebase-admin/firestore';
 import { CoreService } from '../core/abstract-service';
 import { IPlayer, IPlayerStats } from './player.interface';
 import { Player } from './player.model';
@@ -171,7 +172,7 @@ export class PlayerService extends CoreService {
     return snapshotItems.docs.map(snapshot => this.map(snapshot.data()));
   }
 
-  private map(data: FirebaseFirestore.DocumentData) {
+  private map(data: DocumentData) {
     return {
       ...data,
       id: 1,
