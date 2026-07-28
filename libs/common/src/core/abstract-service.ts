@@ -1,3 +1,4 @@
+import type { Firestore, QuerySnapshot, DocumentReference, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 // TODO: refactor out serializer
 import { deserialize, ClazzOrModelSchema } from 'serializr';
 
@@ -5,13 +6,13 @@ import { db } from '../core/config/firebase.config';
 
 export abstract class CoreService {
   //privates?
-  db: FirebaseFirestore.Firestore;
+  db: Firestore;
 
   constructor() {
     this.db = db;
   }
 
-  protected wrapAll<T>(snapshot: FirebaseFirestore.QuerySnapshot, modelschema: ClazzOrModelSchema<T> | null = null): T[] {
+  protected wrapAll<T>(snapshot: QuerySnapshot, modelschema: ClazzOrModelSchema<T> | null = null): T[] {
     const docs: T[] = [];
     for (const doc of snapshot.docs) {
       if (modelschema) {
@@ -24,7 +25,7 @@ export abstract class CoreService {
   }
 
   protected async getDocumentAsObject<T>(
-    docRef: FirebaseFirestore.DocumentReference,
+    docRef: DocumentReference,
     modelschema: ClazzOrModelSchema<T>
   ): Promise<T | null> {
     const snapshot = await docRef.get();
@@ -34,14 +35,14 @@ export abstract class CoreService {
     return null;
   }
 
-  protected async firebaseSetDocument(docRef: FirebaseFirestore.DocumentReference, data: any): Promise<any> {
+  protected async firebaseSetDocument(docRef: DocumentReference, data: any): Promise<any> {
     const _data = cleanInput(data);
     return docRef.set(_data);
   }
 
   protected serializeDocument<T>(
     modelschema: ClazzOrModelSchema<T>,
-    snapshot: FirebaseFirestore.DocumentSnapshot | FirebaseFirestore.QueryDocumentSnapshot
+    snapshot: DocumentSnapshot | QueryDocumentSnapshot
   ): T {
     return Object.assign(deserialize(modelschema, snapshot.data()), { _docId: snapshot.id });
   }

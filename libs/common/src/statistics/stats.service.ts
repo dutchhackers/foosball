@@ -287,7 +287,7 @@ export class StatsService extends CoreService implements IStatsService {
   // updateTimeBasedStatsDoc remains the same as the previous version (accepts snapshot)
   private updateTimeBasedStatsDoc(
     transaction: Transaction,
-    statsDocRef: FirebaseFirestore.DocumentReference,
+    statsDocRef: DocumentReference,
     statsDocSnapshot: DocumentSnapshot,
     playerId: string,
     timeframeId: string,

@@ -1,3 +1,4 @@
+import type { Firestore } from 'firebase-admin/firestore';
 import { connectFirestore, IMatchResult, IPlayerStats, PlayerService, StatsUtils } from '@foosball/common';
 import { logger, setGlobalOptions } from 'firebase-functions/v2';
 import { onRequest } from 'firebase-functions/v2/https';
@@ -36,7 +37,7 @@ function getDefaultStartDate(): string {
 
 async function getPlayerMatches(
   playerId: string,
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   options?: {
     maxSize?: number;
     startDate?: string;

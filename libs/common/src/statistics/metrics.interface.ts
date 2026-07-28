@@ -1,15 +1,15 @@
-import * as admin from 'firebase-admin';
+import type { FieldValue } from 'firebase-admin/firestore';
 
 export interface IMetrics {
-  totalMatches?: number | admin.firestore.FieldValue;
-  totalWins?: number | admin.firestore.FieldValue;
-  totalFlawlessVictories?: number | admin.firestore.FieldValue;
-  totalLosses?: number | admin.firestore.FieldValue;
-  totalHumiliations?: number | admin.firestore.FieldValue;
-  totalSuckerpunches?: number | admin.firestore.FieldValue;
-  totalKnockouts?: number | admin.firestore.FieldValue;
-  totalGoalsFor?: number | admin.firestore.FieldValue;
-  totalGoalsAgainst?: number | admin.firestore.FieldValue;
+  totalMatches?: number | FieldValue;
+  totalWins?: number | FieldValue;
+  totalFlawlessVictories?: number | FieldValue;
+  totalLosses?: number | FieldValue;
+  totalHumiliations?: number | FieldValue;
+  totalSuckerpunches?: number | FieldValue;
+  totalKnockouts?: number | FieldValue;
+  totalGoalsFor?: number | FieldValue;
+  totalGoalsAgainst?: number | FieldValue;
   dateLastMatch?: string;
   dateLastWin?: string;
   dateLastFlawlessVictory?: string;
@@ -17,6 +17,6 @@ export interface IMetrics {
   dateLastHumiliation?: string;
 
   /** Streaks */
-  winStreak?: number | admin.firestore.FieldValue;
-  loseStreak?: number | admin.firestore.FieldValue;
+  winStreak?: number | FieldValue;
+  loseStreak?: number | FieldValue;
 }

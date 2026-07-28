@@ -1,4 +1,4 @@
-import { QueryDocumentSnapshot, WriteBatch, getFirestore } from 'firebase-admin/firestore';
+import { QueryDocumentSnapshot, WriteBatch, getFirestore, type Firestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { HttpsOptions, onRequest } from 'firebase-functions/v2/https';
 
@@ -29,7 +29,7 @@ function calculatePlayerGoals(playerId: string, matchResult: IMatchResult): { go
 }
 
 async function writeGoalStatsToFirestore(
-  db: FirebaseFirestore.Firestore,
+  db: Firestore,
   playerStats: { [playerId: string]: IPlayerGoalsAggregate }
 ): Promise<number> {
   let currentBatch: WriteBatch = db.batch();
