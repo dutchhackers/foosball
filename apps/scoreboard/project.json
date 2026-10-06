@@ -1,0 +1,39 @@
+{
+  "name": "scoreboard",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/scoreboard/src",
+  "projectType": "application",
+  "tags": ["web"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/scoreboard",
+        "main": "apps/scoreboard/src/main.ts",
+        "tsConfig": "apps/scoreboard/tsconfig.app.json",
+        "assets": [{ "glob": "index.html", "input": "apps/scoreboard/src", "output": "." }],
+        "generatePackageJson": false,
+        "platform": "browser",
+        "bundle": true,
+        "thirdParty": true,
+        "target": "es2022",
+        "format": ["esm"],
+        "esbuildOptions": {
+          "outExtension": { ".js": ".js" },
+          "logLevel": "info"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/scoreboard/jest.config.ts"
+      }
+    }
+  }
+}
