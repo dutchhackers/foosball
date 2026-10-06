@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Foosball Scoreboard</title>
+    <style>
+      :root {
+        --bg: #f4f4f1;
+        --fg: #1d1d1b;
+        --muted: #6b6b66;
+        --card: #ffffff;
+        --red: #d33a2c;
+        --blue: #2b6cd4;
+        --border: #deded8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141413;
+          --fg: #f1f0ea;
+          --muted: #a3a29b;
+          --card: #1f1f1d;
+          --border: #34342f;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        padding: 24px 16px;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.4 system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .team {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-top: 8px solid var(--team);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+      }
+      .team.red {
+        --team: var(--red);
+      }
+      .team.blue {
+        --team: var(--blue);
+      }
+      .team h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--team);
+      }
+      .score {
+        font-size: clamp(72px, 18vw, 160px);
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+        margin: 8px 0;
+      }
+      .names {
+        font-weight: 600;
+        min-height: 1.4em;
+      }
+      .controls,
+      #start-form,
+      .dialog-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      input {
+        flex: 1 1 180px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--fg);
+      }
+      button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--fg);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      #status {
+        min-height: 1.4em;
+      }
+      #status[data-error='true'] {
+        color: var(--red);
+      }
+      #goal-log {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 4px;
+      }
+      #goal-log li {
+        padding: 6px 10px;
+        border-left: 4px solid var(--team);
+        background: var(--card);
+        border-radius: 4px;
+      }
+      #goal-log li.red {
+        --team: var(--red);
+      }
+      #goal-log li.blue {
+        --team: var(--blue);
+      }
+      dialog {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--fg);
+        max-width: 420px;
+      }
+      @media (max-width: 560px) {
+        .board {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Foosball Scoreboard</h1>
+        <span class="muted" id="webmcp"></span>
+      </header>
+
+      <form id="start-form">
+        <input id="red-input" placeholder="Red players (comma-separated)" aria-label="Red players" />
+        <input id="blue-input" placeholder="Blue players (comma-separated)" aria-label="Blue players" />
+        <button type="submit">Start match</button>
+      </form>
+
+      <section class="board" aria-live="polite">
+        <div class="team red">
+          <h2>Red</h2>
+          <div class="score" id="red-score">0</div>
+          <div class="names" id="red-names">—</div>
+        </div>
+        <div class="team blue">
+          <h2>Blue</h2>
+          <div class="score" id="blue-score">0</div>
+          <div class="names" id="blue-names">—</div>
+        </div>
+      </section>
+
+      <div class="controls">
+        <button id="add-red">+1 Red</button>
+        <button id="add-blue">+1 Blue</button>
+        <button id="undo">Undo last goal</button>
+        <button id="end">End match…</button>
+      </div>
+      <div id="status" role="status"></div>
+      <ol id="goal-log" aria-label="Goals"></ol>
+    </main>
+
+    <dialog id="confirm-end">
+      <form method="dialog">
+        <h2 style="margin-top: 0">Save this result?</h2>
+        <p id="confirm-text"></p>
+        <p class="muted">Saving updates player stats and leaderboards.</p>
+        <div class="dialog-actions">
+          <button value="cancel">Cancel</button>
+          <button type="button" id="confirm-submit">Submit</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
