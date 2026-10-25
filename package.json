@@ -36,7 +36,7 @@
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "@google-cloud/pubsub": "^5.3.1",
+    "@google-cloud/pubsub": "^6.3.1",
     "@google/generative-ai": "^0.24.1",
     "@slack/web-api": "^7.17.0",
     "express": "4.22.2",
