@@ -45,7 +45,7 @@
     "firebase-functions": "^7.4.0",
     "luxon": "^3.7.2",
     "serializr": "^3.0.5",
-    "tslib": "^2.3.0"
+    "tslib": "^2.9.1"
   },
   "overrides": {
     "node-forge": "^1.4.0"
